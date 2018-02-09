@@ -171,9 +171,9 @@ Counties with population > 100000 and just the the first 2 columns, TotalPop, an
 
 ```{r select3}
 county_MI %>%
-  filter(TotalPop < 50000) %>%
-  select(1:5,-3, Income, Poverty) %>%
-  arrange(desc(Poverty))
+  filter(TotalPop > 100000) %>%
+  select(1:2, TotalPop, starts_with("Inc")) %>%
+  arrange(desc(Income))
 ```
 
 ### Problem 3 - Create new columns with mutate
