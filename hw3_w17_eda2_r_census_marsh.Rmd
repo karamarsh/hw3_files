@@ -185,39 +185,53 @@ county. First do it by NOT saving the computed column. Just compute it
 and display the columns County, TotalPop, pct_F. Sort descending by pct_F.
 
 ```{r mutate1}
-county_MI %>%
-  mutate(pct_F = Women/TotalPop) %>%
-  select(County, TotalPop, pct_F) %>%
-  arrange(desc(pct_F))
+county_MI %>% 
+      mutate(pct_F = Women/TotalPop*100) %>%
+      arrange(desc(pct_F)) %>%
+      select(County, TotalPop, pct_F)
 ```
 
 Now compute pct_F and save the pct_F column (along with the existing columns) in
 a new data frame called county_MI_x.
 
 ```{r mutate2}
-county_MI_x <- county_MI %>% 
-  mutate(pct_F = Women/TotalPop)
+county_MI_x <- mutate(county_MI, pct_F = Women / TotalPop * 100)
+county_MI_x
 ```
 
 Show that it worked by using select to show County, TotalPop, pct_F in
 the new data frame.
 
 ```{r mutate3}
-county_MI_x %>%
-  select(County, TotalPop, pct_F)
+county_MI_x %>% select(County, TotalPop, pct_F)
 ```
 
 County with highest percentage of women? Lowest percentage of women? Create dplyr
 statements that make it easy to answer these questions.
 
 ```{r mutate4a}
+# Highest Percentage of Women
+#ddply(county_MI_x, .(County), summarise,highestpercentagewomen=max(pct_F))
+county_MI_x %>%
+  select(County, pct_F) %>%
+  arrange(desc(pct_F)) %>%
+  head(1)
 
+# Lowest Percentage of Women
+#ddply(county_MI_x, .(County), summarise, lowestpercentagewomen=min(pct_F))
+
+county_MI_x %>%
+  select(County, pct_F) %>%
+  arrange(pct_F) %>%
+  head(1)
 ```
 
 Now create the following histogram using the ideas from the previous queries.
 
 ```{r}
 knitr::include_graphics('images/histos_pctF_by_peninsula.png')
+
+ggplot(county_MI_x, aes(x=pct_F, fill=peninsula), binwidth = 10) + geom_histogram(position="identity")
 ```
 
 Confirm that the columns Professional, Service, Office, Construction,  and 
@@ -225,13 +239,14 @@ Production sum up to 100 (within +- .105). There are a number of ways to do
 this. You could use `mutate` and/or use base R commands.
 
 ```{r}
-# tot_job_type <- ???
-# 
-# summary(tot_job_type)
+tot_job_type <- rowSums( county_MI_x[,24:28])
+tot_job_type
+
+summary(tot_job_type)
+
 # err_tol <- 0.105
 # ???
 ```
-
 
 ### Summarization
 
