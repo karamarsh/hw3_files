@@ -250,7 +250,7 @@ summary(tot_job_type)
 
 ### Summarization
 
-Use county_MI.
+Use county_MI. 
 
 Find total population by peninsula using dplyr.
 
