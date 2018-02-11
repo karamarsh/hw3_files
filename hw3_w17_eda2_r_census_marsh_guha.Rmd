@@ -421,9 +421,10 @@ pop_by_region <- county_df %>% select(TotalPop, Region)
 ```
 
 ```{r barchart}
+library(reshape2)
 ggplot(pop_by_region, aes(Region, TotalPop, fill = Region)) +
                  geom_bar(stat = "identity", position = "dodge") +
-                 scale_fill_brewer(palette = "Set2")
+                 scale_fill_brewer(palette = "Set2") + scale_y_continuous(labels = scales::comma)
 ```
 
 
@@ -431,8 +432,29 @@ Now redo the previous plot but make it a horizontal bar plot and order the bars
 from longest to shortest.
 
 ```{r}
+library(reshape2)
+ggplot(pop_by_region, aes(Region, TotalPop, fill = Region)) +
+                 geom_bar(stat = "identity", position = "dodge") +
+                 scale_fill_brewer(palette = "Set2") + scale_y_continuous(labels = scales::comma) + coord_flip()
 
+#ggplot(order_by(TotalPop, -Region, pop_by_region), aes(x = Region, y = TotalPop, fill = Region)) +
+                 #geom_bar(stat = "identity", position = "dodge") +
+                 #scale_fill_brewer(palette = "Set2") + scale_y_continuous(labels = scales::comma) + coord_flip()
+
+ggplot(pop_by_region, aes(x = reorder(TotalPop, -Region), y = TotalPop, fill = Region)) + 
+  geom_bar(stat = "identity", position = "dodge") + scale_y_continuous(labels = scales::comma) 
+
+# ggplot(pop_by_region, aes(x = reorder(miRNA, -value), y = value, fill = variable)) + geom_bar(stat = "identity")
+
+
+# ggplot(order_by(car, ~ mpg, dat2), aes(x=car, y=mpg)) + 
+#     geom_bar(stat="identity") + 
+#     coord_flip() + ggtitle("Order Pretty Easy")
 ```
+
+
+
+
 
 
 ** Hacker Extra**
