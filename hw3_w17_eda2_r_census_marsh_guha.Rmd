@@ -213,8 +213,6 @@ statements that make it easy to answer these questions.
 # Highest Percentage of Women
 ddply(county_MI_x, .(County), summarise, highestpercentagewomen=max(pct_F))
 
-
-
 # Lowest Percentage of Women
 ddply(county_MI_x, .(County), summarise, lowestpercentagewomen=min(pct_F))
 ```
@@ -427,6 +425,38 @@ ggplot(pop_by_region, aes(Region, TotalPop, fill = Region)) +
                  scale_fill_brewer(palette = "Set2") + scale_y_continuous(labels = scales::comma)
 ```
 
+```{r}
+# ggplot(corr.m, aes(x = reorder(miRNA, -value), y = value, fill = variable)) + 
+#   geom_bar(stat = "identity")
+```
+
+
+
+
+
+```{r}
+
+# str(pop_by_region)
+# 
+# pop_by_region$TotalPop <- as.numeric(pop_by_region$TotalPop)
+# 
+# str(pop_by_region)
+
+pop_by_region <- transform(pop_by_region, Region = reorder(Region, TotalPop))
+
+# ggplot(pop_by_region) + geom_bar(aes(x=Region, y = TotalPop), stat = "identity", position = "dodge") + coord_flip() 
+
+
+ggplot(pop_by_region, aes(x = reorder(Region, -TotalPop), y = TotalPop, fill = Region)) +
+                 geom_bar(stat = "identity", position = "dodge") +
+                 scale_fill_brewer(palette = "Set2") + scale_y_continuous(labels = scales::comma) + labs(
+    x = "Region",                                             # x axis title
+    y = "Total Population",                                   # y axis title
+    title = "Distribution of population Across Regions"       # main title of figure
+                 
+    ) + coord_flip()
+```
+
 
 Now redo the previous plot but make it a horizontal bar plot and order the bars
 from longest to shortest.
@@ -437,12 +467,14 @@ ggplot(pop_by_region, aes(Region, TotalPop, fill = Region)) +
                  geom_bar(stat = "identity", position = "dodge") +
                  scale_fill_brewer(palette = "Set2") + scale_y_continuous(labels = scales::comma) + coord_flip()
 
-#ggplot(order_by(TotalPop, -Region, pop_by_region), aes(x = Region, y = TotalPop, fill = Region)) +
-                 #geom_bar(stat = "identity", position = "dodge") +
-                 #scale_fill_brewer(palette = "Set2") + scale_y_continuous(labels = scales::comma) + coord_flip()
+# breadth_data <- transform(breadth_data,
+                          # Stakeholder = reorder(Stakeholder, 
+                                                # order(Value, decreasing = TRUE)))
 
-ggplot(pop_by_region, aes(x = reorder(TotalPop, -Region), y = TotalPop, fill = Region)) + 
-  geom_bar(stat = "identity", position = "dodge") + scale_y_continuous(labels = scales::comma) 
+#breadth_data <- transform(breadth_data, Stakeholder = reorder(Stakeholder, Value))
+
+# ggplot(pop_by_region, aes(x = reorder(Region, -TotalPop), y = TotalPop, fill = Region)) + 
+  # geom_bar(stat = "identity", position = "dodge") + scale_y_continuous(labels = scales::comma) 
 
 # ggplot(pop_by_region, aes(x = reorder(miRNA, -value), y = value, fill = variable)) + geom_bar(stat = "identity")
 
@@ -451,9 +483,6 @@ ggplot(pop_by_region, aes(x = reorder(TotalPop, -Region), y = TotalPop, fill = R
 #     geom_bar(stat="identity") + 
 #     coord_flip() + ggtitle("Order Pretty Easy")
 ```
-
-
-
 
 
 
@@ -473,20 +502,45 @@ Hint: The tidyr package is helpful.
 library(tidyr)
 library(dplyr)
 
-jobtype <- data.frame(
-  name = c("Construction", "Office", "Production", "Professional", "Service"),
-  value = c(27, 26, 28, 24, 25)
- )
+# Checking the Values For Plotting 
+county_MI_x %>% filter(County == "Macomb" | County== "Oakland" | County == "Wayne") %>%
+ select(County, Professional, Service, Office, Construction, Production)
 
-jobtype <- melt(county_MI_x, id.vars = "Species")
-df[1:5,]
 
 ```
 
 
 ```{r}
-# jobtype <- several lines to create dataframe to drive the plot 
+# Melting the dataframe to help plotting
+county_MI_x_melt00 <- melt(county_MI_x, id.vars = c("County"), variable.name = "JobType", value.name = "Pct")
+
+head(county_MI_x_melt00)
+tail(county_MI_x_melt00)
 ```
+
+```{r}
+# Filtering the melted data into another dataframe for ease of plotting
+county_MI_x_melt01 <- county_MI_x_melt00 %>% filter(County == "Macomb" | County== "Oakland" | County == "Wayne") %>% filter(JobType == "Construction" | JobType == "Office" | JobType == "Production" | JobType == "Professional" | JobType == "Service")
+
+head(county_MI_x_melt01)
+tail(county_MI_x_melt01)
+```
+
+```{r}
+# Converting the data-type of Pct to numeric
+county_MI_x_melt01$Pct <- as.numeric(as.character(county_MI_x_melt01$Pct))
+
+head(county_MI_x_melt01)
+tail(county_MI_x_melt01)
+```
+
+
+```{r}
+# The Final Plot Values Matching To The Above Picture
+ggplot(county_MI_x_melt01, aes(County, Pct, fill = JobType)) +
+                 geom_bar(stat = "identity") 
+```
+
 
 ```{r}
 # ggplot(jobtype) + 
@@ -501,3 +555,76 @@ ggsave('images/stacked_bars_test.png')
 ### Hacker Extra - Do some more analysis
 
 Try a few things on your own to learn more about the counties in Michigan.
+
+# 1. Men & Women Population Distribution Across Macomb, Oakland & Wayne County 
+```{r}
+# Melting the datframe to get the desired data
+county_MI_x_melt_extra <- melt(county_MI_x, id.vars = c("County"), variable.name = "Gender", value.name = "Values")
+
+head(county_MI_x_melt_extra)
+tail(county_MI_x_melt_extra)
+```
+
+```{r}
+# Filtering some of the Variables of interest
+county_MI_x_melt_extra1 <- county_MI_x_melt_extra %>% filter(County == "Macomb" | County== "Oakland" | County == "Wayne") %>% filter(Gender == "Men" | Gender == "Women")
+
+head(county_MI_x_melt_extra1)
+tail(county_MI_x_melt_extra1)
+```
+
+```{r}
+# Plotting the Distribution of Men & Women Across 3 Counties
+ggplot(county_MI_x_melt_extra1, aes(County, Values, fill = Gender)) +
+                 geom_bar(stat = "identity", position = "dodge") 
+```
+
+# 2. Workwise Distribution of Population Across Macomb, Oakland, & Wayne County
+
+```{r}
+# Melting the Variables to get the Dataframe required for the Analysis
+county_MI_x_melt_extra_work <- melt(county_MI_x, id.vars = c("County"), variable.name = "Work", value.name = "Values")
+
+head(county_MI_x_melt_extra_work)
+tail(county_MI_x_melt_extra_work)
+```
+
+```{r}
+# Filtering the Works Types to get the dataframe ready
+county_MI_x_melt_extra_work1 <- county_MI_x_melt_extra_work %>% filter(County == "Macomb" | County== "Oakland" | County == "Wayne") %>% filter(Work == "WorkAtHome" | Work == "PrivateWork" | Work == "PublicWork" | Work == "SelfEmployed" | Work == "FamilyWork")
+
+head(county_MI_x_melt_extra_work1)
+tail(county_MI_x_melt_extra_work1)
+```
+
+```{r}
+# Distribution of Work Type for the 3 Counties
+ggplot(county_MI_x_melt_extra_work1, aes(County, Values, fill = Work)) +
+                 geom_bar(stat = "identity", position = "dodge") +  scale_fill_brewer(palette = "Set2")
+```
+
+# 3. Distribution of Race Across Macomb, Oakland, & Wayne County
+
+```{r}
+# Melting the dataframe to get the variables for the analysis
+county_MI_x_melt_extra_race <- melt(county_MI_x, id.vars = c("County"), variable.name = "Ethnicity", value.name = "Values")
+
+head(county_MI_x_melt_extra_race)
+tail(county_MI_x_melt_extra_race)
+```
+
+```{r}
+# Filtering the Variables of Interest
+county_MI_x_melt_extra_race1 <- county_MI_x_melt_extra_race %>% filter(County == "Macomb" | County== "Oakland" | County == "Wayne") %>% filter(Ethnicity == "Hispanic" | Ethnicity == "White" | Ethnicity == "Black" | Ethnicity == "Native" | Ethnicity == "Asian" | Ethnicity == "Pacific")
+
+head(county_MI_x_melt_extra_race1)
+tail(county_MI_x_melt_extra_race1)
+```
+
+
+```{r}
+# Distribution of People according to Racial Origin in the 3 County
+ggplot(county_MI_x_melt_extra_race1, aes(County, Values, fill = Ethnicity)) +
+                 geom_bar(stat = "identity", position = "dodge") + scale_fill_brewer(palette = "Set2")
+```
+
