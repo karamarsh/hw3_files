@@ -68,6 +68,8 @@ Let's load a few libraries we'll need:
 library(plyr)
 library(dplyr)
 library(ggplot2)
+library(reshape2)
+library(tidyr)
 ```
 
 
@@ -167,7 +169,8 @@ county_MI %>%
   arrange(desc(Poverty))
 ```
 
-Counties with population > 100000 and just the the first 2 columns, TotalPop, and any column starting with "Inc". Sort descending by Income.
+Counties with population > 100000 and just the the first 2 columns, TotalPop, 
+and any column starting with "Inc". Sort descending by Income.
 
 ```{r select3}
 county_MI %>%
@@ -211,34 +214,40 @@ statements that make it easy to answer these questions.
 
 ```{r mutate4a}
 # Highest Percentage of Women
-ddply(county_MI_x, .(County), summarise, highestpercentagewomen=max(pct_F))
+county_MI_x %>%
+  select(County, pct_F) %>%
+  arrange(desc(pct_F)) %>%
+  head(1)
 
 # Lowest Percentage of Women
-ddply(county_MI_x, .(County), summarise, lowestpercentagewomen=min(pct_F))
+county_MI_x %>%
+  select(County, pct_F) %>%
+  arrange(pct_F) %>%
+  head(1)
 ```
 
 Now create the following histogram using the ideas from the previous queries.
 
 ```{r}
 knitr::include_graphics('images/histos_pctF_by_peninsula.png')
-
-ggplot(county_MI_x, aes(x=pct_F, fill=peninsula), binwidth = 30) + geom_histogram(position="identity") 
+county_MI_x %>%
+  ggplot(aes(x=pct_F, fill=peninsula), binwidth = 30) + 
+  geom_histogram(position="identity") 
 ```
 
 Confirm that the columns Professional, Service, Office, Construction,  and 
 Production sum up to 100 (within +- .105). There are a number of ways to do
 this. You could use `mutate` and/or use base R commands.
 
-```{r}
-tot_job_type <- rowSums( county_MI_x[,24:28])
-tot_job_type
-
-summary(tot_job_type)
-
-# err_tol <- 0.105
-# ???
+```{r checkSums}
+err_tol <- 0.105
+tot_job_type <- as.data.frame(rowSums( county_MI_x[,24:28]))
+tot_job_type %>%
+  mutate(Error = abs(`rowSums(county_MI_x[, 24:28])` - 100)) %>%
+  filter(Error > err_tol)
 ```
-
+We see there are zero rows whose error outside of 100% is greater than the 
+error tolerance of 0.105. 
 
 ### Summarization
 
@@ -362,7 +371,6 @@ county_MI %>%
   select(County, Drive) %>%
   arrange(Drive) %>%
   head(10)
-
 ```
 
 
@@ -377,11 +385,17 @@ cor(MatrixData, use = "complete.obs")
 
 Write a few sentences interpreting the correlation matrix.
 
-There is a positive correlation between Total Population and Income per Capita. This suggests that areas with higher populations may have somewhat higher Incomes per Capita than areas with lower populations.
+There is a positive correlation between Total Population and Income per Capita.
+This suggests that areas with higher populations may have somewhat higher 
+Incomes per Capita than areas with lower populations.
 
-The relationship between Child Poverty rates and Income per Capita is strongly negative at -0.687. This makes sense because Income per Capita would include children in the denominator. So areas with lower Income per Capita are more likely to have increased rates of child poverty.
+The relationship between Child Poverty rates and Income per Capita is strongly 
+negative at -0.687. This makes sense because Income per Capita would include 
+children in the denominator. So areas with lower Income per Capita are more 
+likely to have increased rates of child poverty.
 
-The relationship between Total Population and Child Poverty rates is only slight below zero, indicating that there is a very weak negative correlation.
+The relationship between Total Population and Child Poverty rates is only 
+slightly below zero, indicating that there is a very weak negative correlation.
 
 **Hacker Extra**: Write a function that writes out the summary statistics like
 I did in this example from our Moodle site:
@@ -390,6 +404,27 @@ I did in this example from our Moodle site:
 knitr::include_graphics('images/SummaryStats_Output.png')
 ```
 
+```{r summaryStats_v2}
+
+summarystats_v2 <- function(data){
+  print("Measures of central tendency")
+  print("----------------------------")
+  Mean = sprintf("Mean: %f \n",mean(data,na.rm = TRUE))
+  print(Mean)
+  Median = sprintf("Median: %f \n",median(data,na.rm = TRUE))
+  print(Median)
+  
+  print("Measures of dispersion")
+  print("----------------------")
+  
+  
+  print(min(data, na.rm = TRUE))
+  print(max(data, na.rm = TRUE))
+}
+
+summarystats_v2(county_df$Unemployment)
+
+```
 
 
 Compute the proportion of counties in the US with total population greater than 75000.
@@ -414,76 +449,29 @@ a data frame to plot. Hint: You'll also want to learn about the `stat` layer in 
 
 
 ```{r create_df_toplot}
-pop_by_region <- county_df %>% select(TotalPop, Region)
+pop_by_region <- county_df %>%
+  select(TotalPop, Region) %>%
+  group_by(Region) %>%
+  summarize(TotalPopulation = sum(TotalPop))
                  
-```
 
-```{r barchart}
-library(reshape2)
-ggplot(pop_by_region, aes(Region, TotalPop, fill = Region)) +
+ggplot(pop_by_region, aes(Region, TotalPopulation, fill = Region)) +
                  geom_bar(stat = "identity", position = "dodge") +
                  scale_fill_brewer(palette = "Set2") + scale_y_continuous(labels = scales::comma)
 ```
 
-```{r}
-# ggplot(corr.m, aes(x = reorder(miRNA, -value), y = value, fill = variable)) + 
-#   geom_bar(stat = "identity")
-```
-
-
-
-
-
-```{r}
-
-# str(pop_by_region)
-# 
-# pop_by_region$TotalPop <- as.numeric(pop_by_region$TotalPop)
-# 
-# str(pop_by_region)
-
-pop_by_region <- transform(pop_by_region, Region = reorder(Region, TotalPop))
-
-# ggplot(pop_by_region) + geom_bar(aes(x=Region, y = TotalPop), stat = "identity", position = "dodge") + coord_flip() 
-
-
-ggplot(pop_by_region, aes(x = reorder(Region, -TotalPop), y = TotalPop, fill = Region)) +
-                 geom_bar(stat = "identity", position = "dodge") +
-                 scale_fill_brewer(palette = "Set2") + scale_y_continuous(labels = scales::comma) + labs(
-    x = "Region",                                             # x axis title
-    y = "Total Population",                                   # y axis title
-    title = "Distribution of population Across Regions"       # main title of figure
-                 
-    ) + coord_flip()
-```
-
-
 Now redo the previous plot but make it a horizontal bar plot and order the bars
 from longest to shortest.
 
-```{r}
-library(reshape2)
-ggplot(pop_by_region, aes(Region, TotalPop, fill = Region)) +
-                 geom_bar(stat = "identity", position = "dodge") +
-                 scale_fill_brewer(palette = "Set2") + scale_y_continuous(labels = scales::comma) + coord_flip()
 
-# breadth_data <- transform(breadth_data,
-                          # Stakeholder = reorder(Stakeholder, 
-                                                # order(Value, decreasing = TRUE)))
-
-#breadth_data <- transform(breadth_data, Stakeholder = reorder(Stakeholder, Value))
-
-# ggplot(pop_by_region, aes(x = reorder(Region, -TotalPop), y = TotalPop, fill = Region)) + 
-  # geom_bar(stat = "identity", position = "dodge") + scale_y_continuous(labels = scales::comma) 
-
-# ggplot(pop_by_region, aes(x = reorder(miRNA, -value), y = value, fill = variable)) + geom_bar(stat = "identity")
-
-
-# ggplot(order_by(car, ~ mpg, dat2), aes(x=car, y=mpg)) + 
-#     geom_bar(stat="identity") + 
-#     coord_flip() + ggtitle("Order Pretty Easy")
+```{r KarasGuess}
+pop_by_region %>%
+  ggplot(aes(x = reorder(Region,TotalPopulation), TotalPopulation, fill = Region)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_brewer(palette = "Set2") + 
+  scale_y_continuous(labels = scales::comma) + 
+  coord_flip()
 ```
-
 
 
 ** Hacker Extra**
@@ -499,57 +487,19 @@ knitr::include_graphics('images/stacked_bars.png')
 Hint: The tidyr package is helpful.
 
 ```{r}
-library(tidyr)
-library(dplyr)
-
-# Checking the Values For Plotting 
-county_MI_x %>% filter(County == "Macomb" | County== "Oakland" | County == "Wayne") %>%
- select(County, Professional, Service, Office, Construction, Production)
-
-
-```
-
-
-```{r}
 # Melting the dataframe to help plotting
-county_MI_x_melt00 <- melt(county_MI_x, id.vars = c("County"), variable.name = "JobType", value.name = "Pct")
+county_MI_JobMelt <- county_MI %>%
+  gather(`Professional`,`Service`,`Office`,`Construction`,`Production`, 
+         key = "JobType", value = "JobPct") %>%
+  filter(County == "Macomb" | County == "Oakland" | County == "Wayne") %>%
+  select(County, JobType, JobPct)
 
-head(county_MI_x_melt00)
-tail(county_MI_x_melt00)
-```
-
-```{r}
-# Filtering the melted data into another dataframe for ease of plotting
-county_MI_x_melt01 <- county_MI_x_melt00 %>% filter(County == "Macomb" | County== "Oakland" | County == "Wayne") %>% filter(JobType == "Construction" | JobType == "Office" | JobType == "Production" | JobType == "Professional" | JobType == "Service")
-
-head(county_MI_x_melt01)
-tail(county_MI_x_melt01)
-```
-
-```{r}
-# Converting the data-type of Pct to numeric
-county_MI_x_melt01$Pct <- as.numeric(as.character(county_MI_x_melt01$Pct))
-
-head(county_MI_x_melt01)
-tail(county_MI_x_melt01)
-```
-
-
-```{r}
 # The Final Plot Values Matching To The Above Picture
-ggplot(county_MI_x_melt01, aes(County, Pct, fill = JobType)) +
+ggplot(county_MI_JobMelt, aes(County, JobPct, fill = JobType)) +
                  geom_bar(stat = "identity") 
-```
 
-
-```{r}
-# ggplot(jobtype) + 
-#   geom_bar(???)
-
-# Here's how to save a plot to a file
 ggsave('images/stacked_bars_test.png')
 ```
-
 
 
 ### Hacker Extra - Do some more analysis
@@ -557,74 +507,58 @@ ggsave('images/stacked_bars_test.png')
 Try a few things on your own to learn more about the counties in Michigan.
 
 # 1. Men & Women Population Distribution Across Macomb, Oakland & Wayne County 
-```{r}
+```{r lastHackerExtra1}
 # Melting the datframe to get the desired data
-county_MI_x_melt_extra <- melt(county_MI_x, id.vars = c("County"), variable.name = "Gender", value.name = "Values")
+county_MI_MtoW <- 
+  county_MI %>%
+  gather(`Women`,`Men`, key = "gender", value = "gend_pop") %>%
+  filter(County == "Macomb" | County== "Oakland" | County == "Wayne") %>%
+  select(County, gender, gend_pop)
 
-head(county_MI_x_melt_extra)
-tail(county_MI_x_melt_extra)
-```
-
-```{r}
-# Filtering some of the Variables of interest
-county_MI_x_melt_extra1 <- county_MI_x_melt_extra %>% filter(County == "Macomb" | County== "Oakland" | County == "Wayne") %>% filter(Gender == "Men" | Gender == "Women")
-
-head(county_MI_x_melt_extra1)
-tail(county_MI_x_melt_extra1)
-```
-
-```{r}
 # Plotting the Distribution of Men & Women Across 3 Counties
-ggplot(county_MI_x_melt_extra1, aes(County, Values, fill = Gender)) +
-                 geom_bar(stat = "identity", position = "dodge") 
+ggplot(county_MI_MtoW, aes(County, gend_pop, fill = gender)) +
+                 geom_bar(stat = "identity") 
 ```
 
-# 2. Workwise Distribution of Population Across Macomb, Oakland, & Wayne County
+
+# 2. Workwise Distribution of Population Across Different Counties
 
 ```{r}
 # Melting the Variables to get the Dataframe required for the Analysis
-county_MI_x_melt_extra_work <- melt(county_MI_x, id.vars = c("County"), variable.name = "Work", value.name = "Values")
+county_MI_WorkType <- county_MI %>%
+  gather(`PrivateWork`,`PublicWork`,`SelfEmployed`,`FamilyWork`, 
+         key = "WorkType", value = "WorkPct") %>%
+  filter(County == "Kent" | County == "Keweenaw" | County== "Oakland" | 
+           County == "Chippewa"| County == "Oscoda" ) %>%
+  select(County,WorkType,WorkPct)
 
-head(county_MI_x_melt_extra_work)
-tail(county_MI_x_melt_extra_work)
-```
-
-```{r}
-# Filtering the Works Types to get the dataframe ready
-county_MI_x_melt_extra_work1 <- county_MI_x_melt_extra_work %>% filter(County == "Macomb" | County== "Oakland" | County == "Wayne") %>% filter(Work == "WorkAtHome" | Work == "PrivateWork" | Work == "PublicWork" | Work == "SelfEmployed" | Work == "FamilyWork")
-
-head(county_MI_x_melt_extra_work1)
-tail(county_MI_x_melt_extra_work1)
-```
-
-```{r}
 # Distribution of Work Type for the 3 Counties
-ggplot(county_MI_x_melt_extra_work1, aes(County, Values, fill = Work)) +
-                 geom_bar(stat = "identity", position = "dodge") +  scale_fill_brewer(palette = "Set2")
+county_MI_WorkType %>%
+  ggplot(aes(County, WorkPct, fill = WorkType)) +
+  geom_bar(stat = "identity") +
+  scale_fill_brewer(palette = "Set2")  
 ```
+This graph is interesting because it shows a variety of counties. Chippewa and
+Keweenaw counties are both in the Upper Peninsula, and they have similar 
+distributions. Kent and Oakland counties are both metropolitan, though Kent is 
+on the east side of the state and Oakland is on the west side. Oscoda county 
+appears to be a blending of the Upper Peninsula and Metropolitan areas. This 
+makes sense because it is a county situated in the upper half of the Lower 
+Peninsula. 
 
-# 3. Distribution of Race Across Macomb, Oakland, & Wayne County
+# 3. Distribution of Ethnicity Across Macomb, Oakland, & Wayne County
 
 ```{r}
 # Melting the dataframe to get the variables for the analysis
-county_MI_x_melt_extra_race <- melt(county_MI_x, id.vars = c("County"), variable.name = "Ethnicity", value.name = "Values")
-
-head(county_MI_x_melt_extra_race)
-tail(county_MI_x_melt_extra_race)
+county_MI_Ethnicity <- county_MI %>%
+  gather(`Hispanic`, `White`, `Black`, `Native`, `Asian`, `Pacific`, 
+         key = "Ethnicity", value = EthnicityPct) %>%
+  filter(County == "Macomb" | County== "Oakland" | County == "Wayne")
+  
+county_MI_Ethnicity %>% 
+  ggplot(aes(County, EthnicityPct, fill = Ethnicity)) +
+  geom_bar(stat = "identity") + 
+  scale_fill_brewer(palette = "Set2")
 ```
 
-```{r}
-# Filtering the Variables of Interest
-county_MI_x_melt_extra_race1 <- county_MI_x_melt_extra_race %>% filter(County == "Macomb" | County== "Oakland" | County == "Wayne") %>% filter(Ethnicity == "Hispanic" | Ethnicity == "White" | Ethnicity == "Black" | Ethnicity == "Native" | Ethnicity == "Asian" | Ethnicity == "Pacific")
-
-head(county_MI_x_melt_extra_race1)
-tail(county_MI_x_melt_extra_race1)
-```
-
-
-```{r}
-# Distribution of People according to Racial Origin in the 3 County
-ggplot(county_MI_x_melt_extra_race1, aes(County, Values, fill = Ethnicity)) +
-                 geom_bar(stat = "identity", position = "dodge") + scale_fill_brewer(palette = "Set2")
-```
 
