@@ -68,7 +68,6 @@ Let's load a few libraries we'll need:
 library(plyr)
 library(dplyr)
 library(ggplot2)
-library(reshape2)
 library(tidyr)
 ```
 
@@ -199,7 +198,6 @@ a new data frame called county_MI_x.
 
 ```{r mutate2}
 county_MI_x <- mutate(county_MI, pct_F = Women / TotalPop * 100)
-county_MI_x
 ```
 
 Show that it worked by using select to show County, TotalPop, pct_F in
